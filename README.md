@@ -15,3 +15,11 @@ Offical implementation of the paper: Enhancing Multimodal Sentiment Analysis for
 
 
 We will update README.md to further introduce the content of the article after the conference submission deadline, and release training checkpoints and features.
+
+
+
+## Acknowledgements
+
+
+
+Thanks to open source repository [MERTools](https://github.com/zeroQiaoba/MERTools), we have done a lot of work based on it.

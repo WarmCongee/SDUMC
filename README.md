@@ -6,15 +6,25 @@ Offical implementation of the paper: Enhancing Multimodal Sentiment Analysis for
 
 ## News
 
-- (🔥New) 2024/09/10 The project page is  uploaded on the Github.
-
+- (🔥New) 2024/09/10 The project page is uploaded on the Github!
+- (🔥New) 2024/09/19 The final model weights are shared on Google Drive!
   
 
 ## Brief Intro
 
 
 
-We will update README.md to further introduce the content of the article after the conference submission deadline, and release training checkpoints and features.
+We will update README.md to further describe the article content after conference acceptance.
+
+
+
+## Model Weights
+
+
+
+| Model | Complete Modality MSE | Text Modality Missing MSE | File Size | Link                                                         |
+| :---- | --------------------- | ------------------------- | --------- | ------------------------------------------------------------ |
+| SDUMC | 0.5060                | 0.5503                    | 49MB      | [[Google Drive]](https://drive.google.com/file/d/1qDM47_lG0B2eXKVJ8nrx7iOFrd-bD9hC/view?usp=sharing) |
 
 
 

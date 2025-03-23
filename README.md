@@ -17,19 +17,17 @@ Authors: Yuzhe Weng, Haotian Wang, Tian Gao, Kewei Li, Shutong Niu, Jun Du
 
 ## ⭐ Overview 
 
+The overall architecture:
+
+<div align="center">
+<img src="imgs/overall.png" alt="Overall Architectur" />
+</div>
+
+In multimodal sentiment analysis, collecting text data is often more challenging than video or audio. To address this challenge, our study has developed a robust model that effectively integrates multimodal sentiment information, even in the absence of text modality. Specifically, we have developed a Double-Flow Self-Distillation Framework, including Unified Modality Cross-Attention (UMCA) and Modality Imagination Autoencoder (MIA), which excels at processing both scenarios with complete modalities and those with missing text modality. When the text modality is missing, our framework uses the LLM-based model to simulate the text representation from the audio modality. To further align the simulated and real representations, we have also introduced the Rank-N Contrast (RNC) loss function. When testing on the CMU-MOSEI, our model achieved outstanding performance on MAE and significantly outperformed other models when text modality is missing.
 
 
-We will update README.md to further describe the article content and open source the training representation after conference acceptance.
 
-
-
-## 🔧 Usage
-
-
-
-## 🚀 Model Weights
-
-
+## 🚀 Weights & Representation
 
 | Model | Complete Modality MSE | Text Modality Missing MSE | File Size | Link                                                         |
 | :---- | --------------------- | ------------------------- | --------- | ------------------------------------------------------------ |
@@ -37,12 +35,89 @@ We will update README.md to further describe the article content and open source
 
 
 
-## ✈️ Run
+## 🔧 Usage
+
+### Requirements
+
+```
+pip install -r requirements.txt
+```
+
+
+
+### Inference & Evaluation
+
+If you wish to run inference to evaluate the model's performance, please download the model weights and modality representations into their respective directories. The directory structure should be as follows:
+
+```
+
+├── checkpoints
+│   └── mosei_mult-view_kd_full_0.5060_0.5503.pt
+└── dataset
+    ├── datasets_label
+    │   └── cmumosei-process
+	│		└── mosei_mult-view_kd_full_0.5060_0.5503.pt
+    └── features_mosei
+        ├── manet_FRA
+        ├── vicuna-7b-v1.5-FRA-wavlm2vicuna-half-gt
+        ├── vicuna-7b-v1.5-FRA-wavlm2vicuna-half-wav+prompt[take_generate_wordembed_-4]
+        └── wavlm-large-FRA_-5
+```
+
+Run the script to view inference results: 
+
+```
+bash ./shell/main_text_missing_icassp_inference.sh
+```
+
+
+
+### Training
+
+Run the script to train your own model: 
+
+```
+bash ./shell/main_text_missing_icassp.sh
+```
+
+
+
+## :computer: Results
+
+This work ablates various designs of the model and demonstrates the effectiveness of each design.
+
+<div align="center">
+<img src="imgs/table_1.png" alt="Ablation Experiment" width=600/>
+</div>
+
+
+Compared with recent models that have performed well on this task, our model achieves optimal performance in both complete and missing modes.
+
+<div align="center">
+<img src="imgs/table_2.png" alt="Performance Comparison" width=600/>
+</div>
+
+
 
 
 
 ## 🌠 Acknowledgements
 
-
-
 Thanks to open source repository [MERTools](https://github.com/zeroQiaoba/MERTools), we have done a lot of work based on it.
+
+
+
+## :newspaper:Citation
+
+If you find our work useful in your research, please consider citing: 
+
+```
+@inproceedings{weng2025enhancing,
+  title={Enhancing Multimodal Sentiment Analysis for Missing Modality through Self-Distillation and Unified Modality Cross-Attention},
+  author={Weng, Yuzhe and Wang, Haotian and Gao, Tian and Li, Kewei and Niu, Shutong and Du, Jun},
+  booktitle={ICASSP 2025-2025 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={1--5},
+  year={2025},
+  organization={IEEE}
+}
+```

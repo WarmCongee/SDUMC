@@ -14,12 +14,13 @@ Authors: Yuzhe Weng, Haotian Wang, Tian Gao, Kewei Li, Shutong Niu, Jun Du
 
 ## 🔥 News
 
+- :fire:(Mar 24, 2025) The representations used for training have been open sourced! 
 - (Oct 19, 2024) The final model weights are shared on Google Drive!
 - The project page is uploaded on the Github!
 
 
 
-## ⭐ Overview 
+## :star: Overview 
 
 The overall architecture:
 

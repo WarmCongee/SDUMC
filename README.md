@@ -70,7 +70,7 @@ If you wish to run inference to evaluate the model's performance, please downloa
 
 Run the script to view inference results: 
 
-```
+```shell
 bash ./shell/main_text_missing_icassp_inference.sh
 ```
 
@@ -78,13 +78,43 @@ bash ./shell/main_text_missing_icassp_inference.sh
 
 ### Training
 
-Run the script to train your own model: 
+#### Training with extracted representations
 
-```
+If you want to directly use the representations we have extracted for you to train the model, you can download the representations directly from the README link and run the following script directly:
+
+```shell
 bash ./shell/main_text_missing_icassp.sh
 ```
 
+#### Training with representations extracted by yourself
 
+If you want to extract representations yourself for related experiments, you can refer to the following configuration.
+
+**Build ./tools folder**
+
+```
+## for face extractor (OpenFace-win)
+https://drive.google.com/file/d/1-O8epcTDYCrRUU_mtXgjrS3OWA4HTp0-/view?usp=share_link  -> tools/openface_win_x64
+## for visual feature extraction
+https://drive.google.com/file/d/1wT2h5sz22SaEL4YTBwTIB3WoL4HUvg5B/view?usp=share_link ->  tools/manet
+
+## for audio extraction
+https://www.johnvansickle.com/ffmpeg/old-releases ->  tools/ffmpeg-4.4.1-i686-static
+## for acoustic features
+https://huggingface.co/microsoft/wavlm-large -> tools/transformers/wavlm-large
+
+## for text features
+https://huggingface.co/lmsys/vicuna-7b-v1.5 ->  tools/transformers/vicuna-7b-v1.5
+
+## for simulated text representation
+# details: https://github.com/X-LANCE/SLAM-LLM/blob/main/examples/asr_librispeech/README.md
+https://drive.google.com/file/d/1cLNuMR05oXxKj8M_Z3yAZ5JHJ06ybIHp/view?usp=sharing  ->  tools/transformers/WalmL2VicunaV1.5_model.pt
+
+```
+
+
+
+You can refer to the run.sh file in each directory of `./features_extraction` to extract each representation
 
 ## :computer: Results
 

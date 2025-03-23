@@ -39,6 +39,10 @@ In multimodal sentiment analysis, collecting text data is often more challenging
 
 ### Requirements
 
+Python >= 3.9
+
+Pytorch >= 1.8.0
+
 ```
 pip install -r requirements.txt
 ```

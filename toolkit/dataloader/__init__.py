@@ -15,7 +15,7 @@ DIS_DATASET = ['IEMOCAPFour', 'IEMOCAPSix', 'MER2023', 'MELD']
 class get_dataloaders:
 
     def __init__(self, args):
-
+        self.dataset_name = ''
         if args.train_dataset is None:
             DATALOADER_MAP = {
                 'IEMOCAPFour': IEMOCAP,
@@ -28,6 +28,7 @@ class get_dataloaders:
                 'MELD': MELD,
             }
             self.dataloader = DATALOADER_MAP[args.dataset](args)
+            self.dataset_name = args.dataset
         elif args.train_dataset in DIM_DATASET:
             assert args.test_dataset in DIM_DATASET
             self.dataloader = CROSSDIM(args)
@@ -35,8 +36,11 @@ class get_dataloaders:
             assert args.test_dataset in DIS_DATASET
             self.dataloader = CROSSDIS(args)
 
-    def get_loaders(self):
-        return self.dataloader.get_loaders()
+    def get_loaders(self, data_types=['train', 'val', 'test']):
+        if self.dataset_name=='CMU-MOSEI':
+            return self.dataloader.get_loaders(data_types)
+        else:
+            return self.dataloader.get_loaders()
     
     def calculate_results(self, emo_probs=[], emo_labels=[], val_preds=[], val_labels=[]):
         return self.dataloader.calculate_results(emo_probs, emo_labels, val_preds, val_labels)

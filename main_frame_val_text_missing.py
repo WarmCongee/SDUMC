@@ -36,11 +36,12 @@ import torch.optim as optim
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
-from metric import *
 from toolkit.dataloader import get_dataloaders
 from toolkit.models import get_models
 from toolkit.utils.loss import *
+
 import config
+from metric import *
 from scipy.ndimage import gaussian_filter1d
 
 
@@ -56,7 +57,16 @@ def getModelSize(model):
         buffer_size += buffer.nelement() * buffer.element_size()
         buffer_sum += buffer.nelement()
     all_size = (param_size + buffer_size) / 1024 / 1024
-    print('模型总大小为：{:.3f}MB'.format(all_size))
+    print('Total model size: {:.3f} MB'.format(all_size))
+
+
+def setup_seed(seed):
+     torch.manual_seed(seed)
+     torch.cuda.manual_seed_all(seed)
+     np.random.seed(seed)
+     random.seed(seed)
+     torch.backends.cudnn.deterministic = True
+
 
 class Proj(nn.Module):
     def __init__(self, input_dim=128, output_dim=128):
@@ -110,23 +120,19 @@ def train_or_eval_model(args, model, cl_proj, losses, dataloader, optimizer=None
         # multi_feat  = multi_feat.cuda()
 
         ## feed-forward process
-        # features, vals_out, attention_mask = model([audio_feat, text_feat, visual_feat])
-        # features, vals_out, _= model([audio_feat, text_feat, visual_feat])
-        #emo_probs.append(emos_out.data.cpu().numpy())
-
         ## optimize params
         if train:
             vals_out_0, embeddings_0= model([audio_feat, text_feat, visual_feat, False])
             features_0, rnc_feat_0, text_feat_0, text_query_feat_0 = embeddings_0
             
 
-            mask = torch.rand((audio_feat.size(0), audio_feat.size(1), 1)) > p  # 生成随机掩码
+            mask = torch.rand((audio_feat.size(0), audio_feat.size(1), 1)) > p # Generate a random mask
             mask = mask.cuda()
-            dropped_audio_feat = audio_feat * mask.expand_as(audio_feat)  # 应用掩码并调整未被丢弃的权重
+            dropped_audio_feat = audio_feat * mask.expand_as(audio_feat) # Apply mask and adjust weights that were not dropped
 
-            mask = torch.rand((visual_feat.size(0), visual_feat.size(1), 1)) > p  # 生成随机掩码
+            mask = torch.rand((visual_feat.size(0), visual_feat.size(1), 1)) > p # Generate a random mask
             mask = mask.cuda()
-            dropped_visual_feat = visual_feat * mask.expand_as(visual_feat)  # 应用掩码并调整未被丢弃的权重
+            dropped_visual_feat = visual_feat * mask.expand_as(visual_feat) # Apply mask and adjust weights that were not dropped
 
             vals_out_1, embeddings_1 = model([audio_feat, feat4_feat, visual_feat, True])
             features_1, rnc_feat_1, text_feat_1, text_query_feat_1 = embeddings_1
@@ -207,6 +213,7 @@ def record_exp_result(cv_fscore, cv_valmse, cv_metric, args_saved_path):
     f.close()
 
 if __name__ == '__main__':
+    setup_seed(42)
     parser = argparse.ArgumentParser()
 
     ## Params for input
@@ -272,24 +279,18 @@ if __name__ == '__main__':
         args.save_root = f'{args.save_root}-bimodal'
     elif len(set(whole_features)) == 3:
         args.save_root = f'{args.save_root}-trimodal'
-
-    
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print(args)
 
     
     print(f'====== Reading Data =======')
     get_dataloaders = get_dataloaders(args)
     train_loaders, eval_loaders, test_loaders, input_dims = get_dataloaders.get_loaders()         
-    # assert len(train_loaders) == args.num_folder, f'Error: folder number'
-    # assert len(eval_loaders)  == args.num_folder, f'Error: folder number'
     
     args.input_dims = input_dims
     
     print (f'====== Training and Evaluation =======')
     folder_save = []
     folder_evalres = []
-    best_epoch_valid = {'mae': 1.0, 'f1': 0}
     best_epoch_valid_full = {'mae': 1.0, 'f1': 0}
     best_epoch_valid_missing = {'mae': 1.0, 'f1': 0}
     best_epoch_test_full = {'mae': 1.0, 'f1': 0}
@@ -306,9 +307,6 @@ if __name__ == '__main__':
         model = get_models(args).cuda()
         getModelSize(model)
         cl_proj = Proj().cuda()
-        # torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], find_unused_parameters=True)
-        # model = torch.nn.parallel.DataParallel(model)
         reg_loss = MSELoss().cuda()
         rmse_loss = RMSELoss().cuda()
         coss_loss = CosineSimilarityLoss4Seq().cuda()
@@ -329,8 +327,8 @@ if __name__ == '__main__':
         test_save = []
         valid_last_sava_path_full = ''
         valid_last_sava_path = ''
-        test_last_sava_path_full = ''
-        test_last_sava_path = ''
+        last_sava_path_full = ''
+        last_sava_path = ''
 
         losses = {'reg_loss': reg_loss, 'cls_loss': cls_loss, 'kl_loss': kl_loss, 'rnc_loss': rnc_loss,'rmse_loss': rmse_loss,'coss_loss': coss_loss}
 
@@ -345,14 +343,16 @@ if __name__ == '__main__':
             eval_results  = train_or_eval_model(args, model, cl_proj, losses, eval_loader,  optimizer=None,      train=False)
             scheduler.step()
             print ('epoch:%d; train_val_mse_full:%.4f; train_val_mse_missing:%.4f' %(epoch+1, train_results['val_mse_full'], train_results['val_mse_missing']))
+
+
             test_set = args.test_sets[ii]
             test_results = train_or_eval_model(args, model, cl_proj, losses, test_loader, optimizer=None, train=False)
 
-
+            
             valid_result_full = eval_mosei_metric(eval_results['val_preds_full'], eval_results['val_labels'], eval_results['names'])
             valid_result_missing = eval_mosei_metric(eval_results['val_preds_missing'], eval_results['val_labels'], eval_results['names'])
 
-            if valid_result_full['mae'] <= best_epoch_valid_full['mae']: # and test_result['f1'] >= best_epoch_test['f1']:
+            if valid_result_full['mae'] <= best_epoch_valid_full['mae']:
                 best_epoch_valid_full = valid_result_full
                 best_epoch_valid_full['epoch'] = epoch
                 print("***************better valid full**********************")
@@ -361,7 +361,7 @@ if __name__ == '__main__':
                 torch.save({'epoch': epoch+1, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, f'valid_mosei_mult-view_kd_full_{best_epoch_valid_full["mae"]}_{epoch+1}.pt')
                 valid_last_sava_path_full = f'valid_mosei_mult-view_kd_full_{best_epoch_valid_full["mae"]}_{epoch+1}.pt'
 
-            if valid_result_missing['mae'] <= best_epoch_valid_missing['mae']: # and test_result['f1'] >= best_epoch_test['f1']:
+            if valid_result_missing['mae'] <= best_epoch_valid_missing['mae']:
                 best_epoch_valid_missing = valid_result_missing
                 best_epoch_valid_missing['epoch'] = epoch
                 print("===============better valid missing===================")
@@ -370,33 +370,20 @@ if __name__ == '__main__':
                 torch.save({'epoch': epoch+1, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, f'valid_mosei_mult-view_kd_missing_{best_epoch_valid_missing["mae"]}_{epoch+1}.pt')
                 valid_last_sava_path = f'valid_mosei_mult-view_kd_missing_{best_epoch_valid_missing["mae"]}_{epoch+1}.pt'
                 
+                
             
             test_result_full = eval_mosei_metric(test_results['val_preds_full'], test_results['val_labels'], test_results['names'])
             test_result_missing = eval_mosei_metric(test_results['val_preds_missing'], test_results['val_labels'], test_results['names'])
 
-            if test_result_full['mae'] <= best_epoch_test_full['mae']: # and test_result['f1'] >= best_epoch_test['f1']:
+            if test_result_full['mae'] <= best_epoch_test_full['mae']:
                 best_epoch_test_full = test_result_full
                 best_epoch_test_full['epoch'] = epoch
-                print("***************better test full**********************")
-                if os.path.exists(test_last_sava_path_full):
-                    os.remove(test_last_sava_path_full) 
-                torch.save({'epoch': epoch+1, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, f'test_mosei_mult-view_kd_full_{best_epoch_test_full["mae"]}_{epoch+1}.pt')
-                test_last_sava_path_full = f'test_mosei_mult-view_kd_full_{best_epoch_test_full["mae"]}_{epoch+1}.pt'
 
-            if test_result_missing['mae'] <= best_epoch_test_missing['mae']: # and test_result['f1'] >= best_epoch_test['f1']:
+            if test_result_missing['mae'] <= best_epoch_test_missing['mae']:
                 best_epoch_test_missing = test_result_missing
                 best_epoch_test_missing['epoch'] = epoch
-                print("===============better test missing===================")
-                if os.path.exists(test_last_sava_path):
-                    os.remove(test_last_sava_path) 
-                torch.save({'epoch': epoch+1, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, f'test_mosei_mult-view_kd_missing_{best_epoch_test_missing["mae"]}_{epoch+1}.pt')
-                test_last_sava_path = f'test_mosei_mult-view_kd_missing_{best_epoch_test_missing["mae"]}_{epoch+1}.pt'
 
-            print("valid full:")
-            print(valid_result_full)
-            print("valid missing:")
-            print(valid_result_missing)
-
+            # torch.save({'epoch': epoch+1, 'state_dict': model.state_dict(), 'optimizer': optimizer.state_dict()}, f'mosei_mult-view_kd_full_{best_epoch_test_full["mae"]}_{epoch+1}.pt')
             print("test full:")
             print(test_result_full)
             print("test missing:")
@@ -426,7 +413,7 @@ if __name__ == '__main__':
         filename.write(str(best_epoch_test_full))
         filename.write('\n')
         filename.write(str(best_epoch_test_missing))
-        filename.write('\n') # 换行
+        filename.write('\n')
     print(feature_name)
 
 

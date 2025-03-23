@@ -1,8 +1,10 @@
 # Enhancing Multimodal Sentiment Analysis for Missing Modality through Self-Distillation and Unified Modality Cross-Attention
 
-Offical implementation of the paper: Enhancing Multimodal Sentiment Analysis for Missing Modality through Self-Distillation and Unified Modality Cross-Attention
+[ICASSP 2025] Enhancing Multimodal Sentiment Analysis for Missing Modality through Self-Distillation and Unified Modality Cross-Attention
 
+Authors: Yuzhe Weng, Haotian Wang, Tian Gao, Kewei Li, Shutong Niu, Jun Du
 
+<a href='https://arxiv.org/abs/2410.15029'><img src='https://img.shields.io/badge/Paper-Arxiv-red'></a>
 
 ## News
 

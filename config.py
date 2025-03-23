@@ -6,10 +6,9 @@ import socket
 
 ############ For LINUX ##############
 DATA_DIR = {
-	'MER2023': '/disk6/yzwen/SpeakerInvariantMER/dataset',
-	'MER2023-EMU': '/disk3/htwang/MER2023-Baseline-master/dataset-emulation',
-    'CHVAD': '/disk4/htwang/CHVAD/',
-	'CMU-MOSEI': '/disk6/yzwen/SpeakerInvariantMER/dataset',
+	'MER2023': 'dataset',
+    'CHVAD': 'dataset',
+	'CMU-MOSEI': 'dataset',
 }
 PATH_TO_RAW_AUDIO = {
 	'MER2023': os.path.join(DATA_DIR['MER2023'], 'MER2023/audio/test1'),
@@ -18,7 +17,6 @@ PATH_TO_RAW_AUDIO = {
 }
 PATH_TO_RAW_FACE = {
 	'MER2023': os.path.join(DATA_DIR['MER2023'], 'features-train/openface_face_MER2023test2'),
-	'MER2023-EMU': os.path.join(DATA_DIR['MER2023-EMU'], 'features-musan-total/openface_face_blur1'),
     'CMU-MOSEI': os.path.join(DATA_DIR['CMU-MOSEI'], 'features-train/openface_face'),
 }
 PATH_TO_TRANSCRIPTIONS = {
@@ -48,14 +46,14 @@ PATH_TO_LABEL = {
 }
 
 PATH_TO_TOOL = {
-	'wenet': '/disk6/yzwen/SpeakerInvariantMER/tools/wenet/20220506_u2pp_conformer_libtorch/',
-	'whisper': '/disk6/yzwen/SpeakerInvariantMER/tools/whisper/'
+	'wenet': './tools/wenet/20220506_u2pp_conformer_libtorch/',
+	'whisper': './tools/whisper/'
 }
 
-PATH_TO_PRETRAINED_MODELS = '/disk6/yzwen/SpeakerInvariantMER/tools'
-PATH_TO_OPENSMILE = '/disk6/yzwen/SpeakerInvariantMER/tools/opensmile-2.3.0/'
-PATH_TO_FFMPEG = '/disk6/yzwen/SpeakerInvariantMER/tools/ffmpeg-4.4.1-i686-static/ffmpeg'
-PATH_TO_NOISE = '/disk6/yzwen/SpeakerInvariantMER/tools/musan/speech'
+PATH_TO_PRETRAINED_MODELS = './tools'
+PATH_TO_OPENSMILE = './tools/opensmile-2.3.0/'
+PATH_TO_FFMPEG = './tools/ffmpeg-4.4.1-i686-static/ffmpeg'
+PATH_TO_NOISE = './tools/musan/speech'
 
 SAVED_ROOT = os.path.join('./saved')
 MODEL_DIR = os.path.join(SAVED_ROOT, 'model')

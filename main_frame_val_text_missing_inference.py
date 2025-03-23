@@ -36,11 +36,12 @@ import torch.optim as optim
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
-from metric import *
 from toolkit.dataloader import get_dataloaders
 from toolkit.models import get_models
 from toolkit.utils.loss import *
+
 import config
+from metric import *
 from scipy.ndimage import gaussian_filter1d
 
 
@@ -56,8 +57,15 @@ def getModelSize(model):
         buffer_size += buffer.nelement() * buffer.element_size()
         buffer_sum += buffer.nelement()
     all_size = (param_size + buffer_size) / 1024 / 1024
-    print('模型总大小为：{:.3f}MB'.format(all_size))
+    print('Total model size: {:.3f} MB'.format(all_size))
 
+
+def setup_seed(seed):
+     torch.manual_seed(seed)
+     torch.cuda.manual_seed_all(seed)
+     np.random.seed(seed)
+     random.seed(seed)
+     torch.backends.cudnn.deterministic = True
 
 class Proj(nn.Module):
     def __init__(self, input_dim=128, output_dim=128):
@@ -122,36 +130,29 @@ def train_or_eval_model(args, model, cl_proj, losses, dataloader, optimizer=None
         # multi_feat  = multi_feat.cuda()
 
         ## feed-forward process
-        # features, vals_out, attention_mask = model([audio_feat, text_feat, visual_feat])
-        # features, vals_out, _= model([audio_feat, text_feat, visual_feat])
-        #emo_probs.append(emos_out.data.cpu().numpy())
-
         ## optimize params
         if train:
             vals_out_0, embeddings_0= model([audio_feat, text_feat, visual_feat, False])
             features_0, rnc_feat_0, text_feat_0, text_query_feat_0 = embeddings_0
             
 
-            mask = torch.rand((audio_feat.size(0), audio_feat.size(1), 1)) > p  # 生成随机掩码
+            mask = torch.rand((audio_feat.size(0), audio_feat.size(1), 1)) > p # Generate a random mask
             mask = mask.cuda()
-            dropped_audio_feat = audio_feat * mask.expand_as(audio_feat)  # 应用掩码并调整未被丢弃的权重
+            dropped_audio_feat = audio_feat * mask.expand_as(audio_feat) # Apply mask and adjust weights that were not dropped
 
-            mask = torch.rand((visual_feat.size(0), visual_feat.size(1), 1)) > p  # 生成随机掩码
+            mask = torch.rand((visual_feat.size(0), visual_feat.size(1), 1)) > p # Generate a random mask
             mask = mask.cuda()
-            dropped_visual_feat = visual_feat * mask.expand_as(visual_feat)  # 应用掩码并调整未被丢弃的权重
+            dropped_visual_feat = visual_feat * mask.expand_as(visual_feat) # Apply mask and adjust weights that were not dropped
 
             vals_out_1, embeddings_1 = model([audio_feat, feat4_feat, visual_feat, True])
             features_1, rnc_feat_1, text_feat_1, text_query_feat_1 = embeddings_1
 
             n_views_feature = torch.stack((rnc_feat_0, rnc_feat_1), dim=1)
-            # loss1 = cls_loss(emos_out, emos)
 
             MSEloss_0 = losses['reg_loss'](vals_out_0, vals)
             MSEloss_1 = losses['reg_loss'](vals_out_1, vals)
 
             rnc_loss = losses['rnc_loss'](n_views_feature, vals.unsqueeze(1))
-
-            # loss = 0.5*(MSEloss_0 + MSEloss_1) + 5*losses[4](features_0, features_1) + 0.8*rnc_loss # 
             loss = 0.5*(MSEloss_0 + MSEloss_1) + args.text_feat_loss_w*losses['rmse_loss'](text_feat_1, text_feat_0.detach()) + args.text_query_feat_loss_w*losses['rmse_loss'](text_query_feat_1, text_query_feat_0.detach()) + args.features_loss_w*losses['rmse_loss'](features_1, features_0) + args.rnc_loss_w*rnc_loss #    + 0.1*losses[4](text_feat_1, text_feat_0.detach()) + 0.7*losses[4](text_query_feat_1, text_query_feat_0.detach()) + 0.1*losses[4](features_1, features_0)
             loss.backward()
             optimizer.step()
@@ -173,13 +174,6 @@ def train_or_eval_model(args, model, cl_proj, losses, dataloader, optimizer=None
 
         text_rep_full.append(embeddings_0[3].detach().cpu().numpy())
         text_rep_missing.append(embeddings_1[3].detach().cpu().numpy())
-        # for idx, _ in enumerate(attention_mask[0].detach().cpu().numpy()):
-        #     import matplotlib.pyplot as plt
-        #     _ = np.squeeze(_, axis=1)
-        #     _ = gaussian_filter1d(_, 4)
-        #     plt.bar(range(len(_)),_)
-        #     plt.savefig('attention_images/'+ str(idx) + ".png")
-        #     plt.cla()
 
     ## evaluate on dimensional labels
     val_preds_full = np.concatenate(val_preds_full, axis=0)
@@ -245,6 +239,7 @@ def record_exp_result(cv_fscore, cv_valmse, cv_metric, args_saved_path):
     f.close()
 
 if __name__ == '__main__':
+    setup_seed(42)
     parser = argparse.ArgumentParser()
 
     ## Params for input
@@ -286,14 +281,16 @@ if __name__ == '__main__':
 
     ## Params for Distribution
     parser.add_argument('--local_rank', default=0, type=int, help='Process rank')
+
+    ## Params for Inference
+    parser.add_argument('--checkpoint_path', default='', type=str, help='checkpoint path')
+
     args = parser.parse_args()
 
     args.n_classes = 6
     args.num_folder = 5
     args.test_sets = args.test_sets.split(',')
 
-    # if args.dataset is not None:
-    #     args.train_dataset = args.dataset
     if args.test_dataset is None:
         args.test_dataset  = args.dataset
     if args.valid_dataset is None:
@@ -308,17 +305,12 @@ if __name__ == '__main__':
         args.save_root = f'{args.save_root}-bimodal'
     elif len(set(whole_features)) == 3:
         args.save_root = f'{args.save_root}-trimodal'
-
-    
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     print(args)
 
     
     print(f'====== Reading Data =======')
     get_dataloaders = get_dataloaders(args)
-    train_loaders, eval_loaders, test_loaders, input_dims = get_dataloaders.get_loaders()         
-    # assert len(train_loaders) == args.num_folder, f'Error: folder number'
-    # assert len(eval_loaders)  == args.num_folder, f'Error: folder number'
+    test_loaders, input_dims = get_dataloaders.get_loaders(['test'])
     
     args.input_dims = input_dims
     
@@ -328,24 +320,22 @@ if __name__ == '__main__':
     best_epoch_valid = {'mae': 1.0, 'f1': 0}
     best_epoch_test_full = {'mae': 1.0, 'f1': 0}
     best_epoch_test_missing = {'mae': 1.0, 'f1': 0}
-    for ii in range(len(train_loaders)):
+    for ii in range(len(test_loaders)):
         print (f'>>>>> Cross-validation: training on the {ii+1} folder >>>>>')
-        train_loader = train_loaders[ii]
-        eval_loader  = eval_loaders[ii]
+        # train_loader = train_loaders[ii]
+        # eval_loader  = eval_loaders[ii]
         test_loader = test_loaders[ii]
         start_time = time.time()
         name_time  = time.time()
 
         print (f'Step1: build model (each folder has its own model)')
         model = get_models(args)
-        model.load_state_dict({k.replace('module.',''):v for k,v in torch.load('/disk6/yzwen/SpeakerInvariantMER/shell/mosei_mult-view_kd_full_0.5088659491481743_17.pt')['state_dict'].items()}, strict=False)
+        model.load_state_dict({k.replace('module.',''):v for k,v in torch.load(args.checkpoint_path)['state_dict'].items()}, strict=False)
+
         model = model.cuda()
         model.eval()
         getModelSize(model)
         cl_proj = Proj().cuda()
-        # torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-        # model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], find_unused_parameters=True)
-        # model = torch.nn.parallel.DataParallel(model)
         reg_loss = MSELoss().cuda()
         rmse_loss = RMSELoss().cuda()
         coss_loss = CosineSimilarityLoss4Seq().cuda()
@@ -368,46 +358,17 @@ if __name__ == '__main__':
 
         losses = {'reg_loss': reg_loss, 'cls_loss': cls_loss, 'kl_loss': kl_loss, 'rnc_loss': rnc_loss,'rmse_loss': rmse_loss,'coss_loss': coss_loss}
 
-        for epoch in range(args.epochs):
+        for epoch in range(1):
 
             store_values = {}
-            ## training and validation
-            train_start = time.time()
-            train_results = train_or_eval_model(args, model, cl_proj, losses, train_loader, optimizer=optimizer, train=False)
-            train_end = time.time()
-            print('used: {} s'.format(train_end-train_start))
-            eval_results  = train_or_eval_model(args, model, cl_proj, losses, eval_loader,  optimizer=None,      train=False)
-            scheduler.step()
-            eval_valmses.append(eval_results['val_mse'])
-        
-            # store_values['eval_valpreds'] = eval_results['val_preds']
-            # store_values['eval_names']    = eval_results['names']
-            print ('epoch:%d; train_val_mse:%.4f' %(epoch+1, train_results['val_mse']))
-
-            ## testing and saving： test in all trained dataset
-            # for jj, test_loader in enumerate(test_loaders):
             test_set = args.test_sets[ii]
             test_results = train_or_eval_model(args, model, cl_proj, losses, test_loader, optimizer=None, train=False)
-
-
-            # store_values[f'{test_set}_valpreds']   = test_results['val_preds']
-            # store_values[f'{test_set}_vallabels']   = test_results['val_labels']
-            # if args.savewhole: store_values[f'{test_set}_embeddings'] = test_results['embeddings']
-            # test_save.append(store_values)
-
-
-            # valid_result = eval_mosei_metric(eval_results['val_preds'], eval_results['val_labels'], eval_results['names'])
-            # if valid_result['mae'] <= best_epoch_valid['mae']: # and valid_result['f1'] >= best_epoch_valid['f1']:
-            #     best_epoch_valid = valid_result
-            #     best_epoch_valid['epoch'] = epoch
-                
              
             test_result_full = eval_mosei_metric(test_results['val_preds_full'], test_results['val_labels'], test_results['names'])
             test_result_missing = eval_mosei_metric(test_results['val_preds_missing'], test_results['val_labels'], test_results['names'])
             
             print(test_result_full)
             print(test_result_missing)
-
 
             print("-" * 50)
         
@@ -421,17 +382,3 @@ if __name__ == '__main__':
     if not os.path.exists(save_predroot): os.makedirs(save_predroot)
     if not os.path.exists(save_modelroot): os.makedirs(save_modelroot)
     feature_name = f'{args.audio_feature}+{args.text_feature}+{args.video_feature}'
-
-    # np.save(f'/disk6/yzwen/SpeakerInvariantMER/shell/wo_MIA_reps_{best_epoch_test["mae"]}.npy', test_results)
-
-    # print("best_valid:")
-    # print(best_epoch_valid)
-    # print("best_test:")
-    # print(best_epoch_test)
-    # with open('paper_exp.txt', mode='a') as filename:
-    #     filename.write(f'--text_feat_loss_w={args.text_feat_loss_w} --text_query_feat_loss_w={args.text_query_feat_loss_w} --features_loss_w={args.features_loss_w} --rnc_loss_w={args.rnc_loss_w}\n')
-    #     filename.write(str(best_epoch_test))
-    #     filename.write('\n') # 换行
-    # print(feature_name)
-
-

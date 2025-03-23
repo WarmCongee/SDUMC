@@ -62,7 +62,7 @@ too_long_data = [
 ]
 
 
-# CMU 数据集测试的时候，是包括 [train, val, test]
+# the CMU dataset, it includes [train, val, test]
 class CMUMOSEI:
     def __init__(self, args):
         self.args = args
@@ -81,10 +81,10 @@ class CMUMOSEI:
         args.output_dim2 = 1
         args.metric_name = 'emo'
 
-    def get_loaders(self):
+    def get_loaders(self, data_types=['train', 'val', 'test']):
         dataloaders = []
         input_dims = []
-        for data_type in ['train', 'val', 'test']:
+        for data_type in data_types: 
             names, labels = self.read_names_labels(self.label_path, data_type, debug=self.debug)
             if data_type == 'train':
                 for item in too_long_data:
@@ -122,13 +122,14 @@ class CMUMOSEI:
             
             
             dataloaders.append(dataloader)
-        train_loaders = [dataloaders[0]]
-        eval_loaders  = [dataloaders[1]]
-        test_loaders  = [dataloaders[2]]
-
-                
-        return train_loaders, eval_loaders, test_loaders, input_dims
-    
+        if len(dataloaders)==1:
+            test_loaders  = [dataloaders[-1]]
+            return test_loaders, input_dims
+        else:
+            train_loaders = [dataloaders[0]]
+            eval_loaders  = [dataloaders[1]]
+            test_loaders  = [dataloaders[2]]
+            return train_loaders, eval_loaders, test_loaders, input_dims
 
     def read_names_labels(self, label_path, data_type, debug=False):
         names, labels = [], []
@@ -145,7 +146,7 @@ class CMUMOSEI:
         return names, labels
 
 
-    # CMU 采用的指标，是将val转成2分类计算 ACC, WAF
+    # The indicators used by CMU convert val into 2-class calculation ACC, WAF
     def calculate_results(self, emo_probs=[], emo_labels=[], val_preds=[], val_labels=[]):
         
         non_zeros = np.array([i for i, e in enumerate(val_labels) if e != 0]) # remove 0, and remove mask

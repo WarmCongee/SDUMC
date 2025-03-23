@@ -34,6 +34,17 @@ In multimodal sentiment analysis, collecting text data is often more challenging
 | SDUMC | 0.5060                | 0.5503                    | 49MB      | [[Google Drive]](https://drive.google.com/file/d/1qDM47_lG0B2eXKVJ8nrx7iOFrd-bD9hC/view?usp=sharing) |
 
 
+Representation:
+[Baidu Drive](https://pan.baidu.com/s/1iHbWPZps-uidqRflAnKnFw?pwd=cqdb)
+```
+https://pan.baidu.com/s/1iHbWPZps-uidqRflAnKnFw?pwd=cqdb -> 
+features_mosei/manet_FRA 
+features_mosei/vicuna-7b-v1.5-FRA-wavlm2vicuna-half-gt
+features_mosei/vicuna-7b-v1.5-FRA-wavlm2vicuna-half-wav+prompt[take_generate_wordembed_-4]
+features_mosei/wavlm-large-FRA_-5
+```
+
+
 
 ## 🔧 Usage
 
@@ -109,12 +120,12 @@ https://huggingface.co/lmsys/vicuna-7b-v1.5 ->  tools/transformers/vicuna-7b-v1.
 ## for simulated text representation
 # details: https://github.com/X-LANCE/SLAM-LLM/blob/main/examples/asr_librispeech/README.md
 https://drive.google.com/file/d/1cLNuMR05oXxKj8M_Z3yAZ5JHJ06ybIHp/view?usp=sharing  ->  tools/transformers/WalmL2VicunaV1.5_model.pt
-
 ```
 
+You can refer to the run.sh file in each directory of `./features_extraction` to extract each representation.
 
 
-You can refer to the run.sh file in each directory of `./features_extraction` to extract each representation
+
 
 ## :computer: Results
 
@@ -130,8 +141,6 @@ Compared with recent models that have performed well on this task, our model ach
 <div align="center">
 <img src="imgs/table_2.png" alt="Performance Comparison" width=600/>
 </div>
-
-
 
 
 

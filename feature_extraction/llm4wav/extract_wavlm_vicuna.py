@@ -189,7 +189,7 @@ class WavLM2Vicuna(nn.Module):
         super(WavLM2Vicuna, self).__init__()
 
         self.encoder_projector = EncoderProjectorConcat(5, 1024, 4096)
-        porjector_temp = torch.load('/disk6/yzwen/SpeakerInvariantMER/tools/transformers/WalmL2VicunaV1.5_model.pt')
+        porjector_temp = torch.load('tools/transformers/WalmL2VicunaV1.5_model.pt')
         new_dict = {key[len('encoder_projector.'):]: value for key, value in porjector_temp.items()}
     
         print(porjector_temp.keys())
@@ -198,7 +198,7 @@ class WavLM2Vicuna(nn.Module):
             param.requires_grad = False
 
         self.layer_ids = [-4]
-        self.vicuna_model = AutoModelForCausalLM.from_pretrained('/disk6/yzwen/SpeakerInvariantMER/tools/transformers/vicuna-7b-v1.5', low_cpu_mem_usage=True)
+        self.vicuna_model = AutoModelForCausalLM.from_pretrained('tools/transformers/vicuna-7b-v1.5', low_cpu_mem_usage=True)
         self.vicuna_model = self.vicuna_model.half()
         for param in self.vicuna_model.parameters():
             param.requires_grad = False
@@ -259,7 +259,8 @@ class WavLM2Vicuna(nn.Module):
             
             llms_hidden_state = text_outputs.hidden_states
             llms_hidden_state = llms_hidden_state[1:]
-            llms_hidden_state = [torch.stack(inner_tuple[-4:]) for inner_tuple in llms_hidden_state]
+            # llms_hidden_state = [torch.stack(inner_tuple[-4:]) for inner_tuple in llms_hidden_state]
+            llms_hidden_state = [inner_tuple[-4] for inner_tuple in llms_hidden_state]
             llms_hidden_state = torch.stack(llms_hidden_state)[:, :, 0, 0, :]
             llms_hidden_state = torch.sum(llms_hidden_state, dim=1)
             # llms_hidden_state = llms_hidden_state.unsqueeze(0)
@@ -275,7 +276,7 @@ def extract_embedding(model_name, trans_dir, save_dir, feature_level, gpu=-1, pu
 
     # save last four layers
     layer_ids = [-4]
-    save_dir = os.path.join(save_dir, f'{model_name}-{feature_level[:3]}-wavlm2vicuna-half-wav+prompt[take_generate_wordembed_-4_-1_new]')
+    save_dir = os.path.join(save_dir, f'{model_name}-{feature_level[:3]}-wavlm2vicuna-half-wav+prompt[take_generate_wordembed_-4]')
 
 
     if not os.path.exists(save_dir): os.makedirs(save_dir)

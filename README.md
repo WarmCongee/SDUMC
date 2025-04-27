@@ -49,7 +49,11 @@ features_mosei/vicuna-7b-v1.5-FRA-wavlm2vicuna-half-wav+prompt[take_generate_wor
 features_mosei/wavlm-large-FRA_-5
 ```
 
-
+Dataset Labels
+[[Google Drive]](https://drive.google.com/file/d/1-k9A9kFnIlk94QY6nMbc2r3pTu6btU3p/view?usp=sharing)
+```
+label_official.npz -> dataset/datasets_label/cmumosei-process/
+```
 
 ## 🔧 Usage
 
@@ -76,7 +80,7 @@ If you wish to run inference to evaluate the model's performance, please downloa
 └── dataset
     ├── datasets_label
     │   └── cmumosei-process
-	│		└── mosei_mult-view_kd_full_0.5060_0.5503.pt
+	│		└── label_official.npz
     └── features_mosei
         ├── manet_FRA
         ├── vicuna-7b-v1.5-FRA-wavlm2vicuna-half-gt
